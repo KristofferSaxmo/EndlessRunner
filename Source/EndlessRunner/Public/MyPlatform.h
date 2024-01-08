@@ -15,9 +15,14 @@ public:
 	AMyPlatform();
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float Velocity;
+	void SpawnObstacles();
+	int32 DeleteObstacles();
+	void DeleteObstacle();
+	virtual void Tick(float DeltaTime) override;
+	AMyPlatform* NextPlatform = nullptr;
+	TArray<int32> FreeLanes;
 
 protected:
-	TArray<AActor> Obstacles;
 	TArray<FVector> Lanes;
 	virtual void BeginPlay() override;
 
@@ -29,9 +34,4 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MoveActor")
 	class UStaticMeshComponent* Mesh;
-
-public:
-	void SpawnObstacles();
-	void DeleteObstacles() const;
-	virtual void Tick(float DeltaTime) override;
 };

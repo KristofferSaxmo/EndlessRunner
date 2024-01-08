@@ -34,15 +34,16 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void BeginPlay() override;
+
+	int32 GetLanes() const;
 	
-	
+	AMyPlatform* TailPlatform;
 	
 protected:
 	TQueue<AMyPlatform*> PlatformPool;
 	TArray<AMyPlatform*> Platforms;
 	void SpawnInitialPlatforms();
 
-	AMyPlatform* TailPlatform;
 	AMyPlatform* HeadPlatform;
 	
 	
@@ -50,6 +51,14 @@ protected:
 	float Timer;
 	int32 Score;
 	int32 PlayersAlive;
+	bool bIsCoop;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	TSubclassOf<AMyPawn> PlayerClass;
+	
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Platforms")
+	int32 Lanes;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Platforms")
 	int32 PlatformsPerObstacle;

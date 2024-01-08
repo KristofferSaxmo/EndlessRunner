@@ -3,9 +3,11 @@
 
 #include "EndlessRunnerGameModeBase.h"
 
+#include "MyGameInstance.h"
 #include "MyPawn.h"
 #include "MyPlatform.h"
-
+#include "Player1Controller.h"
+#include "Player2AIController.h"
 #include "Kismet/GameplayStatics.h"
 
 AEndlessRunnerGameModeBase::AEndlessRunnerGameModeBase()
@@ -17,7 +19,6 @@ AEndlessRunnerGameModeBase::AEndlessRunnerGameModeBase()
 void AEndlessRunnerGameModeBase::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 	Timer += DeltaTime;
 
 	if (Timer > 1)
@@ -35,10 +36,19 @@ void AEndlessRunnerGameModeBase::Tick(const float DeltaTime)
 	if (TailPlatform->GetActorLocation().X > 0)
 	{
 		PlatformPool.Dequeue(HeadPlatform);
-		HeadPlatform->DeleteObstacles();
+		int32 Count = HeadPlatform->DeleteObstacles();
+		bIsCoop ? Count *= 2 : Count;
+		for (int32 i = 0; i < Count * 2; i++)
+		{
+			if (FMath::RandRange(0, 99) < 5)
+			{
+				// :P
+				TailPlatform->NextPlatform->NextPlatform->NextPlatform->NextPlatform->NextPlatform->NextPlatform->DeleteObstacle();
+			}
+		}
 		PlatformPool.Enqueue(HeadPlatform);
 		PlatformPool.Peek(TailPlatform);
-		const FVector Location(-100 * (Amount), 0.0f, 0.0f);
+		const FVector Location(-200 * (Amount), 0.0f, 0.0f);
 		HeadPlatform->SetActorLocation(Location);
 
 		Counter++;
@@ -51,44 +61,72 @@ void AEndlessRunnerGameModeBase::Tick(const float DeltaTime)
 void AEndlessRunnerGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	const UMyGameInstance* GameInstance = Cast<UMyGameInstance>(GetGameInstance());
+	Lanes = GameInstance->GetLanes();
+	bIsCoop = GameInstance->GetIsCoop();
+	
 	SpawnInitialPlatforms();
 
 	PlayerHUD = CreateWidget<UPlayerHUD>(GetWorld(), PlayerHudClass);
 	PlayerHUD->AddToViewport();
+	
+	const FActorSpawnParameters SpawnInfo;
+	const FRotator Rotation(0.0f, 0.0f, 0.0f);
+	
+	if (APlayer1Controller* Player1Controller = Cast<APlayer1Controller>(UGameplayStatics::GetPlayerController(GetWorld(), 0)))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Player 1 controller found"));
+		AMyPawn* Player1Pawn = GetWorld()->SpawnActor<AMyPawn>(PlayerClass, FVector(-200.0f, 60.0f, 21.0f), Rotation, SpawnInfo);
+		Player1Pawn->Position = -1;
+		Player1Controller->Possess(Player1Pawn);
+		Player1Pawn->DynamicMaterial->SetVectorParameterValue(FName("Color"), FColor::Blue);
+	}
+	if (!bIsCoop) return;
+	
+	if (APlayer2AIController* Player2AIController = GetWorld()->SpawnActor<APlayer2AIController>(APlayer2AIController::StaticClass()))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Player 2 controller created"));
+		AMyPawn* Player2Pawn = GetWorld()->SpawnActor<AMyPawn>(PlayerClass, FVector(-250.0f, -60.0f, 21.0f), Rotation, SpawnInfo);
+		Player2Pawn->Position = 1;
+		Player2AIController->Possess(Player2Pawn);
+		Player2Pawn->DynamicMaterial->SetVectorParameterValue(FName("Color"), FColor::Black);
+	}
+}
 
-	PlayersAlive = GetNumPlayers();
+int32 AEndlessRunnerGameModeBase::GetLanes() const
+{
+	return Lanes;
 }
 
 void AEndlessRunnerGameModeBase::ReportDeadPlayer()
 {
-	PlayersAlive--;
-	if (PlayersAlive == 0)
+	const FString FilePath = FPaths::ProjectDir() + TEXT("Highscore.txt");
+	FString HighscoreStr;
+	FFileHelper::LoadFileToString(HighscoreStr, *FilePath);
+
+	int32 HighscoreInt = FCString::Atoi(*HighscoreStr);
+
+	if (Score > HighscoreInt)
 	{
-		const FString FilePath = FPaths::ProjectDir() + TEXT("Highscore.txt");
-		FString HighscoreStr;
-		FFileHelper::LoadFileToString(HighscoreStr, *FilePath);
-
-		int32 HighscoreInt = FCString::Atoi(*HighscoreStr);
-
-		if (Score > HighscoreInt)
-		{
-			FFileHelper::SaveStringToFile(FString::FromInt(Score), *FilePath);
-		}
-		
-		UGameplayStatics::OpenLevel(this, FName("MenuLevel"), false);
+		FFileHelper::SaveStringToFile(FString::FromInt(Score), *FilePath);
 	}
+	
+	UGameplayStatics::OpenLevel(this, FName("MenuLevel"), false);
 }
 
 void AEndlessRunnerGameModeBase::SpawnInitialPlatforms()
 {
 	UWorld* World = GetWorld();
 	const FRotator Rotation(0.0f, 0.0f, 0.0f);
+	TArray<AMyPlatform*> TempPlatforms;
 	for (int i = 0; i < Amount; i++)
 	{
 		const FActorSpawnParameters SpawnInfo;
-		FVector Location(-100 * i, 0.0f, 0.0f);
+		FVector Location(-200 * i, 0.0f, 0.0f);
 		AMyPlatform* Platform = World->SpawnActor<AMyPlatform>(PlatformClass, Location, Rotation, SpawnInfo);
 		PlatformPool.Enqueue(Platform);
+		TempPlatforms.Add(Platform);
 		Platforms.Add(Platform);
 		Platform->Velocity = Velocity;
 
@@ -102,6 +140,13 @@ void AEndlessRunnerGameModeBase::SpawnInitialPlatforms()
 			}
 		}
 	}
+	
+
+	for (int i = 0; i < TempPlatforms.Num(); i++)
+	{
+		TempPlatforms[i]->NextPlatform = TempPlatforms[(i + 1) % TempPlatforms.Num()];
+	}
+	
 	PlatformPool.Peek(TailPlatform);
 }
 
