@@ -43,21 +43,26 @@ void AMyPawn::BeginPlay()
 void AMyPawn::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
+	
 	if (!OtherActor->ActorHasTag("Obstacle")) return;
+	
 	OtherActor->Destroy();
 	Health -= 1;
 	AEndlessRunnerGameModeBase* GameMode = Cast<AEndlessRunnerGameModeBase>(UGameplayStatics::GetGameMode(this));
-	APlayer1Controller* PlayerController = Cast<APlayer1Controller>(GetController());
+	const APlayer1Controller* PlayerController = Cast<APlayer1Controller>(GetController());
+	
 	if (PlayerController)
-	{
 		GameMode->PlayerHUD->UpdateHealth(Health);
-	}
-	GameMode->PlayerHUD->UpdateHealth(Health);
+	
 	if (Health == 0)
 	{
 		if (PlayerController)
 		{
 			GameMode->ReportDeadPlayer();
+		}
+		else
+		{
+			GameMode->PlayersAlive -= 1;
 		}
 		Destroy();
 	}
@@ -92,4 +97,9 @@ void AMyPawn::Move(bool bLeft)
 	FVector Location = GetActorLocation();
 	Location.Y = -Position * MoveLength;
 	SetActorLocation(Location);
+}
+
+int32 AMyPawn::GetPosition() const
+{
+	return Position;
 }

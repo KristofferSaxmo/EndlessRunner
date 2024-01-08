@@ -27,7 +27,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Move(bool bLeft);
 
-	int32 Position;
+	int32 GetPosition() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -40,6 +40,7 @@ protected:
 	int32 Health = 3;
 	float MoveLength = 60;
 	float JumpVelocity = 400;
+	int32 Position;
 
 	UPROPERTY(EditAnywhere, Category = Input)
 	UInputAction* JumpAction;

@@ -16,6 +16,41 @@ AEndlessRunnerGameModeBase::AEndlessRunnerGameModeBase()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+void AEndlessRunnerGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	const UMyGameInstance* GameInstance = Cast<UMyGameInstance>(GetGameInstance());
+	Lanes = GameInstance->GetLanes();
+	bIsCoop = GameInstance->GetIsCoop();
+	
+	SpawnInitialPlatforms();
+
+	PlayerHUD = CreateWidget<UPlayerHUD>(GetWorld(), PlayerHudClass);
+	PlayerHUD->AddToViewport();
+	
+	const FActorSpawnParameters SpawnInfo;
+	const FRotator Rotation(0.0f, 0.0f, 0.0f);
+	
+	if (APlayer1Controller* Player1Controller = Cast<APlayer1Controller>(UGameplayStatics::GetPlayerController(GetWorld(), 0)))
+	{
+		AMyPawn* Player1Pawn = GetWorld()->SpawnActor<AMyPawn>(PlayerClass, FVector(-200.0f, 0.0f, 21.0f), Rotation, SpawnInfo);
+		Player1Controller->Possess(Player1Pawn);
+		Player1Pawn->DynamicMaterial->SetVectorParameterValue(FName("Color"), FColor::Blue);
+		PlayersAlive += 1;
+	}
+	
+	if (!bIsCoop) return;
+	
+	if (APlayer2AIController* Player2AIController = GetWorld()->SpawnActor<APlayer2AIController>(APlayer2AIController::StaticClass()))
+	{
+		AMyPawn* Player2Pawn = GetWorld()->SpawnActor<AMyPawn>(PlayerClass, FVector(-250.0f, 0.0f, 21.0f), Rotation, SpawnInfo);
+		Player2AIController->Possess(Player2Pawn);
+		Player2Pawn->DynamicMaterial->SetVectorParameterValue(FName("Color"), FColor::Black);
+		PlayersAlive += 1;
+	}
+}
+
 void AEndlessRunnerGameModeBase::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -37,7 +72,7 @@ void AEndlessRunnerGameModeBase::Tick(const float DeltaTime)
 	{
 		PlatformPool.Dequeue(HeadPlatform);
 		int32 Count = HeadPlatform->DeleteObstacles();
-		bIsCoop ? Count *= 2 : Count;
+		Count *= PlayersAlive;
 		for (int32 i = 0; i < Count * 2; i++)
 		{
 			if (FMath::RandRange(0, 99) < 5)
@@ -58,42 +93,6 @@ void AEndlessRunnerGameModeBase::Tick(const float DeltaTime)
 	}
 }
 
-void AEndlessRunnerGameModeBase::BeginPlay()
-{
-	Super::BeginPlay();
-
-	const UMyGameInstance* GameInstance = Cast<UMyGameInstance>(GetGameInstance());
-	Lanes = GameInstance->GetLanes();
-	bIsCoop = GameInstance->GetIsCoop();
-	
-	SpawnInitialPlatforms();
-
-	PlayerHUD = CreateWidget<UPlayerHUD>(GetWorld(), PlayerHudClass);
-	PlayerHUD->AddToViewport();
-	
-	const FActorSpawnParameters SpawnInfo;
-	const FRotator Rotation(0.0f, 0.0f, 0.0f);
-	
-	if (APlayer1Controller* Player1Controller = Cast<APlayer1Controller>(UGameplayStatics::GetPlayerController(GetWorld(), 0)))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Player 1 controller found"));
-		AMyPawn* Player1Pawn = GetWorld()->SpawnActor<AMyPawn>(PlayerClass, FVector(-200.0f, 60.0f, 21.0f), Rotation, SpawnInfo);
-		Player1Pawn->Position = -1;
-		Player1Controller->Possess(Player1Pawn);
-		Player1Pawn->DynamicMaterial->SetVectorParameterValue(FName("Color"), FColor::Blue);
-	}
-	if (!bIsCoop) return;
-	
-	if (APlayer2AIController* Player2AIController = GetWorld()->SpawnActor<APlayer2AIController>(APlayer2AIController::StaticClass()))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Player 2 controller created"));
-		AMyPawn* Player2Pawn = GetWorld()->SpawnActor<AMyPawn>(PlayerClass, FVector(-250.0f, -60.0f, 21.0f), Rotation, SpawnInfo);
-		Player2Pawn->Position = 1;
-		Player2AIController->Possess(Player2Pawn);
-		Player2Pawn->DynamicMaterial->SetVectorParameterValue(FName("Color"), FColor::Black);
-	}
-}
-
 int32 AEndlessRunnerGameModeBase::GetLanes() const
 {
 	return Lanes;
@@ -101,6 +100,8 @@ int32 AEndlessRunnerGameModeBase::GetLanes() const
 
 void AEndlessRunnerGameModeBase::ReportDeadPlayer()
 {
+	PlayersAlive -= 1;
+	
 	const FString FilePath = FPaths::ProjectDir() + TEXT("Highscore.txt");
 	FString HighscoreStr;
 	FFileHelper::LoadFileToString(HighscoreStr, *FilePath);

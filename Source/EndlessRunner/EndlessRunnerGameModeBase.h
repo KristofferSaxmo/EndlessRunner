@@ -30,32 +30,28 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UPlayerHUD> PlayerHudClass;
-	
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void BeginPlay() override;
 
 	int32 GetLanes() const;
 	
+	int32 PlayersAlive;
 	AMyPlatform* TailPlatform;
 	
 protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+	void SpawnInitialPlatforms();
+	
 	TQueue<AMyPlatform*> PlatformPool;
 	TArray<AMyPlatform*> Platforms;
-	void SpawnInitialPlatforms();
-
 	AMyPlatform* HeadPlatform;
-	
 	
 	int32 Counter;
 	float Timer;
 	int32 Score;
-	int32 PlayersAlive;
 	bool bIsCoop;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
 	TSubclassOf<AMyPawn> PlayerClass;
-	
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Platforms")
 	int32 Lanes;
