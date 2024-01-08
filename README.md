@@ -15,7 +15,7 @@ This part consists of only the base game. I started with the [GameMode](https://
 
 This part is a lot more fleshed out. For starters, I generalized the code so that the game can have any amount of lanes as long as it's an odd number. I made the presets 3, 5 and 7 lanes in the main menu. I set up a GameInstance to carry information about the amount of lanes and if it's multiplayer or not from the MenuLevel to the GameLevel.
 
-Part 2 also includes an AI Co-op mode. The AI is an [AIController](https://github.com/KristofferSaxmo/EndlessRunner/blob/main/Source/EndlessRunner/Private/Player2AIController.cpp) that proccesses the oncomming platforms lanes and sets a it's desired position the the closest empty lane. It will then move towards the desired lane at a fixed pace. If the desired lane is far away, it will also jump to decrease chances getting hit.
+Part 2 also includes an AI Co-op mode. The AI is an [AIController](https://github.com/KristofferSaxmo/EndlessRunner/blob/main/Source/EndlessRunner/Private/Player2AIController.cpp) that proccesses the oncomming platforms lanes and sets a it's desired position the the closest empty lane. It will then move towards the desired lane at a fixed pace. If the desired lane is far away, it will also jump to decrease chances getting hit. It can die, but will not do so until far into the game when it goes really fast.
 
 I also made it so that every time one of the players pass an obstacle, there is a small chance that obstacles further ahead gets destroyed. It works for each player, so playing with the AI makes it easier because more obstacles are destroyed.
 
